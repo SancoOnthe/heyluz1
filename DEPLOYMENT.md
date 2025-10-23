@@ -1,143 +1,139 @@
 
----
+# Despliegue y configuración de claves (Supabase)
 
-# Guía de despliegue — Heyluz Aromas
+Este documento resume los pasos prácticos para configurar las claves de Supabase localmente y en CI, aplicar el schema y ejecutar la migración.
 
-Guía concisa y limpia para desplegar la aplicación usando Supabase (DB + Auth) y Vercel.
+IMPORTANTE: nunca subas `SUPABASE_SERVICE_ROLE_KEY` a un repositorio público. Manténla en secretos de tu proveedor (Vercel, GitHub Actions, etc.).
 
-## 1) Requisitos previos
+## Archivos clave
+- `.env.example` — plantilla con variables (añadida en el repo). Copia a `.env.local` y rellena.
+- `scripts/supabase-schema.sql` — schema y políticas RLS.
+- `scripts/migrate-to-supabase.js` — script de migración (soporta `--dry-run`).
+- `scripts/link-auth-profiles.js` — enlaza usuarios de Auth con `public.profiles` (usa service role).
 
-* Cuenta en Supabase (https://app.supabase.com).
-* Cuenta en Vercel (https://vercel.com).
-* Permisos para ejecutar SQL en tu proyecto Supabase.
+## 1) Configuración local (PowerShell)
 
----
+1. Copia el ejemplo a `.env.local`:
 
-## 2) Preparar Supabase
+```powershell
+copy .env.example .env.local
+```
 
-1. Crea un proyecto en Supabase.
-2. Copia la URL del proyecto y la anon key (public).
-3. Si vas a ejecutar migraciones o crear usuarios desde scripts, copia también la service_role key y guárdala como secreto (no subir al repositorio).
-4. En el SQL Editor ejecuta `scripts/supabase-schema.sql` o adapta el schema según tus necesidades.
-
----
-
-## 3) Variables de entorno (local y en Vercel)
-
-Crea un archivo `.env.local` en la raíz del proyecto (NO lo subas al repositorio):
+2. Edita `.env.local` y pega tus claves:
 
 ```ini
-NEXT_PUBLIC_SUPABASE_URL=https://<tu-proyecto>.supabase.co
-NEXT_PUBLIC_SUPABASE_ANON_KEY=<tu_anon_key>
-SUPABASE_SERVICE_ROLE_KEY=<tu_service_role_key>    # sólo en secrets/production
+NEXT_PUBLIC_SUPABASE_URL=https://your-project.supabase.co
+NEXT_PUBLIC_SUPABASE_ANON_KEY=eyJ...anon...
+SUPABASE_SERVICE_ROLE_KEY=eyJ...service_role...   # opcional para runtime, obligatorio para migraciones
 NEXT_PUBLIC_APP_URL=http://localhost:3000
 ```
 
-En Vercel añade las mismas variables. Marca `SUPABASE_SERVICE_ROLE_KEY` como secreto en Production.
+3. Comprobar variables (modo no estricto):
 
----
+```powershell
+node ./scripts/check-env.js
+```
 
-## 4) Migración de datos (opcional, recomendada)
+4. Comprobar variables (estricto — exige service role):
 
-1. Instala dependencias:
+```powershell
+node ./scripts/check-env.js --strict
+```
 
-```bash
+## 2) Ejecutar schema y migraciones (staging primero)
+
+1. Abre Supabase Studio → SQL Editor y pega `scripts/supabase-schema.sql`. Ejecuta en staging.
+2. Instala dependencias e inspecciona migración (dry-run):
+
+```powershell
 npm install
+npm run -s migrate-supabase -- --dry-run
 ```
 
-2. Ejecuta una migración de prueba (dry-run):
+3. Si el dry-run es correcto, lanza la migración real (requiere `SUPABASE_SERVICE_ROLE_KEY`):
 
 ```powershell
-npm run migrate-supabase -- --dry-run
+npm run -s migrate-supabase
 ```
 
-3. Si todo se ve bien, ejecuta la migración real (requiere `SUPABASE_SERVICE_ROLE_KEY`):
+4. Asociar usuarios Auth → profiles (opcional, recomendado):
 
 ```powershell
-npm run migrate-supabase
+# Dry-run
+npm run link-auth-profiles -- --dry-run --verbose
+# Real
+npm run link-auth-profiles
 ```
+
+## 3) Añadir secretos en proveedores (Vercel / GitHub Actions)
+
+- Vercel: Project → Settings → Environment Variables. Añade:
+   - NEXT_PUBLIC_SUPABASE_URL
+   - NEXT_PUBLIC_SUPABASE_ANON_KEY
+   - SUPABASE_SERVICE_ROLE_KEY (mark as secret)
+
+- GitHub Actions (secrets): Settings → Secrets → Actions → New repository secret.
+   - NOMBRE: SUPABASE_SERVICE_ROLE_KEY
+   - NOMBRE: NEXT_PUBLIC_SUPABASE_URL
+   - NOMBRE: NEXT_PUBLIC_SUPABASE_ANON_KEY
+
+Ejemplo (workflow snippet) para GitHub Actions (usa secrets):
+
+```yaml
+env:
+   NEXT_PUBLIC_SUPABASE_URL: ${{ secrets.NEXT_PUBLIC_SUPABASE_URL }}
+   NEXT_PUBLIC_SUPABASE_ANON_KEY: ${{ secrets.NEXT_PUBLIC_SUPABASE_ANON_KEY }}
+   SUPABASE_SERVICE_ROLE_KEY: ${{ secrets.SUPABASE_SERVICE_ROLE_KEY }}
+```
+
+## 4) Checklist antes de producción
+- [ ] Ejecutaste el schema en staging y verificaste las tablas/policies
+- [ ] Ejecutaste `migrate-supabase --dry-run` y revisaste el output
+- [ ] Correlacionaste `auth.users` con `public.profiles` (link-auth-profiles)
+- [ ] Añadiste secrets en el proveedor de despliegue
+- [ ] Probaste login, productos públicos y endpoints protegidos en staging
+
+## 5) Troubleshooting rápido
+- Invalid API key: revisa que no tengas espacios en las keys y que las variables estén definidas en el entorno donde corre la app.
+- RLS: si obtienes 403 revisa que `profiles.auth_id` exista y las políticas permitan la operación.
 
 ---
 
-## 5) Despliegue en Vercel
+Si quieres, actualizo también el README con estos pasos o creo un workflow de GitHub Actions que haga el `migrate --dry-run` en PRs.
 
-1. Empuja el repositorio a tu VCS (GitHub/GitLab/Bitbucket):
+## 6) Ejemplo: GitHub Actions workflow para PRs (dry-run)
 
-```bash
-git add .
-git commit -m "Deploy: preparar para producción"
-git push
+Este workflow ejecuta la comprobación `migrate-supabase --dry-run` en Pull Requests para validar que la migración no rompe antes de mergear.
+
+```yaml
+name: PR Migration Check
+
+on:
+   pull_request:
+      types: [opened, synchronize, reopened]
+
+jobs:
+   migrate-dry-run:
+      runs-on: ubuntu-latest
+      env:
+         NEXT_PUBLIC_SUPABASE_URL: ${{ secrets.NEXT_PUBLIC_SUPABASE_URL }}
+         NEXT_PUBLIC_SUPABASE_ANON_KEY: ${{ secrets.NEXT_PUBLIC_SUPABASE_ANON_KEY }}
+         SUPABASE_SERVICE_ROLE_KEY: ${{ secrets.SUPABASE_SERVICE_ROLE_KEY }}
+      steps:
+         - uses: actions/checkout@v4
+         - name: Setup Node
+            uses: actions/setup-node@v4
+            with:
+               node-version: '20'
+         - name: Install dependencies
+            run: npm ci
+         - name: Run migration dry-run
+            run: npm run -s migrate-supabase -- --dry-run
 ```
 
-2. En Vercel crea un proyecto desde tu repositorio.
-3. Configura las Environment Variables para Production/Preview/Development.
-4. Despliega y espera a que la build termine.
+Notas:
+- Asegura que `SUPABASE_SERVICE_ROLE_KEY` esté guardada en Secrets y disponible sólo para ramas protegidas si es necesario.
 
----
-
-## 6) Verificaciones post-despliegue
-
-* La página principal se carga correctamente.
-* Login (Supabase Auth) funciona.
-* El dashboard del admin es accesible (si aplica).
-* Los productos se muestran (verificar `published = true`).
-
----
-
-## 7) Problemas comunes
-
-* "Invalid API key": revisa que pegaste las claves correctamente y sin espacios extra.
-* "Row Level Security": ejecuta el SQL del schema y revisa las políticas RLS en Supabase.
-* Productos no se muestran: verifica `published` y las políticas RLS.
-
----
-
-## 8) Notas de seguridad
-
-* Nunca subas `SUPABASE_SERVICE_ROLE_KEY` al repositorio.
-* Mantén las claves en los secrets de tu proveedor (Vercel, Netlify, etc.).
-
----
-
-## 9) Recursos
-
-* [Next.js docs](https://nextjs.org/docs)
-* [Supabase docs](https://supabase.com/docs)
-* [Vercel docs](https://vercel.com/docs)
-* [Supabase docs](https://supabase.com/docs)
-* [Vercel docs](https://vercel.com/docs)
-
-# 🚀 Guía de Despliegue (configuración local o proveedor externo)
-## 📋 Requisitos Previos
-* Nota: este proyecto ahora usa Supabase como proveedor de datos y autenticación. Sigue los pasos abajo para crear el proyecto en Supabase y configurar variables de entorno.
-## 🗄️ Paso 1: Preparar la capa de datos
-Recomendación: usar Supabase (Postgres gestionado). El resto de las instrucciones asumen que usarás Supabase.
-## 💻 Paso 2: Configurar Variables de Entorno Locales
-### 2.1 Crear archivo `.env.local`
-En la raíz del proyecto:
-```bash
-cp .env.local.example .env.local
-```
-### 2.2 Editar `.env.local`
-```env
-# Variables mínimas para Supabase (NO subir a repositorios públicos)
-NEXT_PUBLIC_SUPABASE_URL=https://tu-proyecto.supabase.co
-NEXT_PUBLIC_SUPABASE_ANON_KEY=tu_anon_key_publica
-SUPABASE_SERVICE_ROLE_KEY=tu_service_role_key  # mantener como secreto
-NEXT_PUBLIC_APP_URL=http://localhost:3000
-```
-### 2.3 Probar localmente
-```bash
-npm run dev
-```
-Abre http://localhost:3000 y verifica (tras configurar Supabase y migrar datos):
-* ✅ Productos se cargan desde la tabla `products`
-* ✅ Login funciona via Supabase Auth
-* ✅ Dashboard del admin es accesible
-## 🎯 Paso 3: Migrar Datos Existentes (Opcional)
-Si ya tienes productos/datos en localStorage, puedes migrarlos:
-### 3.1 Exportar desde Admin
-1. Ve a `/admin/productos`
 2. Haz clic en **Exportar CSV**
 3. Guarda el archivo
 ### 3.2 Importar datos

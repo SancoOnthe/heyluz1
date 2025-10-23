@@ -9,6 +9,7 @@
     "lint": "eslint",
     "check-env": "node ./scripts/check-env.js",
     "migrate-supabase": "node ./scripts/migrate-to-supabase.js",
+  "link-auth-profiles": "node ./scripts/link-auth-profiles.js",
     "test": "vitest"
   },
   "dependencies": {
