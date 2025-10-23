@@ -1,0 +1,68 @@
+[
+  {
+    "id": "order-1001",
+    "user": {
+      "id": "33333333-3333-4333-8333-333333333333",
+      "username": "user",
+      "email": "user@heyluz.com"
+    },
+    "status": "pagado",
+    "items": [
+      {
+        "id": "p1",
+        "name": "Vela Aromática - Lavanda",
+        "quantity": 2,
+        "price": 25000
+      },
+      {
+        "id": "p2",
+        "name": "Difusor de aroma",
+        "quantity": 1,
+        "price": 45000
+      }
+    ],
+    "total": 95000,
+    "createdAt": "2025-09-10T12:34:00.000Z",
+    "invoiceId": "F-1001"
+  },
+  {
+    "id": "order-1002",
+    "user": {
+      "id": "33333333-3333-4333-8333-333333333333",
+      "username": "user",
+      "email": "user@heyluz.com"
+    },
+    "status": "enviado",
+    "items": [
+      {
+        "id": "p3",
+        "name": "Set de Perfumes",
+        "quantity": 1,
+        "price": 120000
+      }
+    ],
+    "total": 120000,
+    "createdAt": "2025-10-01T09:10:00.000Z",
+    "invoiceId": "F-1002"
+  },
+  {
+    "id": "order-2001",
+    "user": {
+      "id": "22222222-2222-4222-8222-222222222222",
+      "username": "editor",
+      "email": "editor@heyluz.com"
+    },
+    "status": "pagado",
+    "items": [
+      {
+        "id": "p4",
+        "name": "Velas aromáticas - Pack",
+        "quantity": 3,
+        "price": 30000
+      }
+    ],
+    "total": 90000,
+    "createdAt": "2025-08-15T11:00:00.000Z",
+    "invoiceId": "F-2001"
+  }
+]

@@ -1,0 +1,177 @@
+<!doctype html>
+<html lang="es">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <title>Test Invoice Flow - Heyluz</title>
+  <style>
+    body { font-family: Arial, Helvetica, sans-serif; padding: 20px; }
+    button { padding: 8px 12px; margin-right: 8px; }
+    pre { background:#f7f7f7; padding:12px; border:1px solid #eee }
+    .row { margin: 8px 0 }
+  </style>
+</head>
+<body>
+  <h2>Prueba flujo de facturación</h2>
+  <p>Esta página simula localStorage y permite generar/abrir una factura localmente.</p>
+
+  <div class="row">
+    <button id="seed">Sembrar pedido demo</button>
+    <button id="generate">Generar factura</button>
+    <button id="open">Abrir factura (ventana imprimible)</button>
+    <button id="clear">Limpiar localStorage demo</button>
+  </div>
+
+  <h3>Estado</h3>
+  <div id="status"></div>
+
+  <h3>LocalStorage (orders / settings)</h3>
+  <pre id="ls"></pre>
+
+  <script type="module">
+    // Funciones copiadas y adaptadas de src/utils/adminUtils.js para pruebas locales
+    const STORAGE_KEYS = {
+      ORDERS: 'heyluz_orders',
+      SETTINGS: 'heyluz_settings'
+    };
+
+    const formatPrice = (amount) => {
+      const num = Number(amount || 0);
+      try {
+        const settings = JSON.parse(localStorage.getItem(STORAGE_KEYS.SETTINGS) || '{}');
+        const currency = settings.currency || 'COP';
+        if (currency === 'COP') {
+          return `$ ${num.toLocaleString('es-CO', { minimumFractionDigits: 0, maximumFractionDigits: 0 })}`;
+        }
+        return new Intl.NumberFormat('es-CO', { style: 'currency', currency: currency, minimumFractionDigits: 0, maximumFractionDigits: 0 }).format(num);
+      } catch (e) {
+        return `$ ${num.toLocaleString('es-CO', { minimumFractionDigits: 0, maximumFractionDigits: 0 })}`;
+      }
+    };
+
+    const getOrders = () => {
+      try { const s = localStorage.getItem(STORAGE_KEYS.ORDERS); return s ? JSON.parse(s) : []; } catch(e){ return []; }
+    };
+    const saveOrders = (o) => { localStorage.setItem(STORAGE_KEYS.ORDERS, JSON.stringify(o)); };
+
+    const getSettings = () => {
+      try { const s = localStorage.getItem(STORAGE_KEYS.SETTINGS); return s ? JSON.parse(s) : { invoicePrefix: 'FAC-', invoiceNext: 1, currency: 'COP' }; } catch(e){ return { invoicePrefix: 'FAC-', invoiceNext: 1, currency: 'COP' } }
+    };
+    const saveSettings = (s) => { localStorage.setItem(STORAGE_KEYS.SETTINGS, JSON.stringify(s)); };
+
+    const generateInvoiceForOrder = (orderId) => {
+      const orders = getOrders();
+      const idx = orders.findIndex(o => o.id === orderId);
+      if (idx === -1) return null;
+      const order = orders[idx];
+      const settings = getSettings();
+      if (!order.invoiceId) {
+        const prefix = settings.invoicePrefix || 'FAC-';
+        const next = settings.invoiceNext || 1;
+        const invoiceId = `${prefix}${String(next).padStart(4, '0')}`;
+        orders[idx] = { ...order, invoiceId };
+        settings.invoiceNext = Number(next) + 1;
+        saveOrders(orders);
+        saveSettings(settings);
+        return orders[idx];
+      }
+      return order;
+    };
+
+    const openInvoiceWindow = (order) => {
+      if (!order) return;
+      const itemsHtml = (order.items || []).map(it => `
+        <tr>
+          <td>${(it.name||'').replace(/</g,'&lt;')}</td>
+          <td style="text-align:right">${formatPrice(it.price)}</td>
+          <td style="text-align:center">${Number(it.quantity||1)}</td>
+          <td style="text-align:right">${formatPrice((Number(it.price)||0)*(Number(it.quantity)||1))}</td>
+        </tr>
+      `).join('');
+
+      const invoiceNumber = order.invoiceId || '';
+      const date = new Date(order.createdAt || Date.now()).toLocaleString();
+      const customerName = order.user?.name || order.user?.username || 'Cliente';
+      const customerEmail = order.user?.email || '';
+
+      const html = `
+      <html>
+      <head>
+        <title>Factura ${invoiceNumber}</title>
+        <meta charset="utf-8" />
+        <style>body{font-family:Arial,Helvetica,sans-serif;padding:24px;color:#111}table{width:100%;border-collapse:collapse;margin-top:16px}th,td{border-bottom:1px solid #eee;padding:8px}th{background:#f9f9f9;text-align:left}.totals{margin-top:12px}.actions{margin-top:18px}</style>
+      </head>
+      <body>
+        <div style="display:flex;justify-content:space-between;align-items:center">
+          <div><div style="font-weight:700;font-size:18px">HEYLUZ AROMAS</div><div style="color:#666">Factura generada automáticamente</div></div>
+          <div style="text-align:right"><div style="font-size:18px;font-weight:700">${invoiceNumber}</div><div style="color:#666">${date}</div></div>
+        </div>
+        <div style="margin-top:18px"><strong>Cliente:</strong> ${customerName} <br/><strong>Email:</strong> ${customerEmail}</div>
+        <table>
+          <thead><tr><th>Descripción</th><th style="text-align:right">Precio</th><th style="text-align:center">Cantidad</th><th style="text-align:right">Subtotal</th></tr></thead>
+          <tbody>${itemsHtml}</tbody>
+        </table>
+        <div class="totals"><div style="display:flex;justify-content:space-between;margin-top:8px"><span>Total</span><strong>${formatPrice(order.total)}</strong></div></div>
+        <div class="actions"><button onclick="window.print()" style="padding:8px 12px">Imprimir / Guardar como PDF</button></div>
+      </body>
+      </html>
+      `;
+
+      const w = window.open('', '_blank', 'noopener');
+      if (!w) return;
+      w.document.open();
+      w.document.write(html);
+      w.document.close();
+    };
+
+    // UI helpers
+    const statusEl = document.getElementById('status');
+    const lsEl = document.getElementById('ls');
+    const seedBtn = document.getElementById('seed');
+    const genBtn = document.getElementById('generate');
+    const openBtn = document.getElementById('open');
+    const clearBtn = document.getElementById('clear');
+
+    const refresh = () => {
+      lsEl.textContent = JSON.stringify({ orders: getOrders(), settings: getSettings() }, null, 2);
+    };
+
+    seedBtn.addEventListener('click', () => {
+      const demoOrders = [
+        { id: 'ORD-TEST-1', createdAt: new Date().toISOString(), items:[{ name:'Elegancia Dorada', price:89990, quantity:2 }], total:179980, user:{ name:'Cliente Demo', email:'cliente@demo.com' } }
+      ];
+      const demoSettings = { invoicePrefix: 'FAC-TEST-', invoiceNext: 1, currency: 'COP' };
+      localStorage.setItem(STORAGE_KEYS.ORDERS, JSON.stringify(demoOrders));
+      localStorage.setItem(STORAGE_KEYS.SETTINGS, JSON.stringify(demoSettings));
+      statusEl.textContent = 'Sembrado pedido demo';
+      refresh();
+    });
+
+    genBtn.addEventListener('click', () => {
+      const orders = getOrders();
+      if (!orders || orders.length === 0) { statusEl.textContent = 'No hay pedidos para generar factura'; return; }
+      const updated = generateInvoiceForOrder(orders[0].id);
+      statusEl.textContent = updated && updated.invoiceId ? `Factura generada: ${updated.invoiceId}` : 'No se generó factura';
+      refresh();
+    });
+
+    openBtn.addEventListener('click', () => {
+      const orders = getOrders();
+      if (!orders || orders.length === 0) { statusEl.textContent = 'No hay pedidos'; return; }
+      const order = orders[0];
+      if (!order.invoiceId) { statusEl.textContent = 'El pedido no tiene invoiceId. Genera la factura primero.'; return; }
+      openInvoiceWindow(order);
+      statusEl.textContent = `Abriendo factura ${order.invoiceId}`;
+    });
+
+    clearBtn.addEventListener('click', () => {
+      localStorage.removeItem(STORAGE_KEYS.ORDERS);
+      localStorage.removeItem(STORAGE_KEYS.SETTINGS);
+      statusEl.textContent = 'LocalStorage demo limpiado';
+      refresh();
+    });
+
+    refresh();
+  </script>
+</body>
+</html>

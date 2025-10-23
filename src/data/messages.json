@@ -1,0 +1,40 @@
+[
+  {
+    "id": "1761072993058-jzf7iy",
+    "nombre": "Ronaldkhjbl",
+    "email": "admin@site.com",
+    "telefono": "3107036658",
+    "asunto": "pedido",
+    "mensaje": "sdqdq",
+    "createdAt": "2025-10-21T18:56:33.058Z",
+    "status": "leido",
+    "updatedAt": "2025-10-22T02:28:59.330Z"
+  },
+  {
+    "id": "1761099297526-fxv4no",
+    "nombre": "Usuario",
+    "email": "user@heyluz.com",
+    "telefono": "",
+    "asunto": "consulta",
+    "mensaje": "dfsgsgs\n",
+    "createdAt": "2025-10-22T02:14:57.526Z",
+    "status": "leido",
+    "updatedAt": "2025-10-22T02:29:01.305Z"
+  },
+  {
+    "id": "1761099570087-lo1zqp",
+    "nombre": "Usuario",
+    "email": "user@heyluz.com",
+    "telefono": "",
+    "asunto": "consulta",
+    "mensaje": "dfsfsd\n",
+    "createdAt": "2025-10-22T02:19:30.087Z",
+    "status": "leido",
+    "reply": {
+      "responder": "admin",
+      "body": "Ya se resolcio",
+      "repliedAt": "2025-10-22T02:20:23.674Z"
+    },
+    "updatedAt": "2025-10-22T02:20:23.674Z"
+  }
+]

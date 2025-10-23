@@ -1,0 +1,28 @@
+[
+  {
+    "id": "11111111-1111-4111-8111-111111111111",
+    "email": "admin@heyluz.com",
+    "password": "admin123",
+    "user_metadata": { "name": "Admin" }
+  },
+  {
+    "id": "22222222-2222-4222-8222-222222222222",
+    "email": "editor@heyluz.com",
+    "password": "editor123",
+    "user_metadata": { "name": "Editor" }
+  },
+  {
+    "id": "33333333-3333-4333-8333-333333333333",
+    "email": "user@heyluz.com",
+    "password": "user123",
+    "user_metadata": { "name": "Usuario" }
+  },
+  {
+    "id": "566e6b2f-1373-4fe7-a4d1-7e2ba713a72f",
+    "email": "user@heyluz1.com",
+    "password": "123456",
+    "user_metadata": {
+      "name": "Retos Robotica"
+    }
+  }
+]

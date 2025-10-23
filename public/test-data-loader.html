@@ -1,0 +1,327 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Test Data Loader - HEYLUZ Dashboard</title>
+  <style>
+    * {
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box;
+    }
+
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, sans-serif;
+      background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+      min-height: 100vh;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      padding: 20px;
+    }
+
+    .container {
+      background: white;
+      border-radius: 20px;
+      padding: 40px;
+      max-width: 600px;
+      width: 100%;
+      box-shadow: 0 20px 60px rgba(0,0,0,0.3);
+    }
+
+    h1 {
+      color: #667eea;
+      margin-bottom: 10px;
+      font-size: 28px;
+    }
+
+    .subtitle {
+      color: #666;
+      margin-bottom: 30px;
+      font-size: 14px;
+    }
+
+    .info-box {
+      background: #f0f4ff;
+      border-left: 4px solid #667eea;
+      padding: 15px;
+      margin-bottom: 25px;
+      border-radius: 8px;
+    }
+
+    .info-box p {
+      color: #555;
+      line-height: 1.6;
+      margin: 5px 0;
+    }
+
+    .info-box strong {
+      color: #667eea;
+    }
+
+    .button-group {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 15px;
+      margin-bottom: 20px;
+    }
+
+    button {
+      padding: 15px 25px;
+      font-size: 16px;
+      font-weight: 600;
+      border: none;
+      border-radius: 10px;
+      cursor: pointer;
+      transition: all 0.3s ease;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 8px;
+    }
+
+    .btn-load {
+      background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+      color: white;
+      grid-column: 1 / -1;
+    }
+
+    .btn-load:hover {
+      transform: translateY(-2px);
+      box-shadow: 0 10px 25px rgba(102, 126, 234, 0.4);
+    }
+
+    .btn-clear {
+      background: #ff6b6b;
+      color: white;
+    }
+
+    .btn-clear:hover {
+      background: #ee5a52;
+    }
+
+    .btn-info {
+      background: #4ecdc4;
+      color: white;
+    }
+
+    .btn-info:hover {
+      background: #45b8b0;
+    }
+
+    .icon {
+      font-size: 18px;
+    }
+
+    .output {
+      background: #1e1e1e;
+      color: #00ff00;
+      padding: 20px;
+      border-radius: 10px;
+      font-family: 'Courier New', monospace;
+      font-size: 13px;
+      line-height: 1.6;
+      max-height: 300px;
+      overflow-y: auto;
+      margin-top: 20px;
+      display: none;
+    }
+
+    .output.show {
+      display: block;
+    }
+
+    .output pre {
+      margin: 0;
+      white-space: pre-wrap;
+    }
+
+    .stats {
+      display: grid;
+      grid-template-columns: repeat(2, 1fr);
+      gap: 15px;
+      margin-top: 20px;
+    }
+
+    .stat-card {
+      background: linear-gradient(135deg, #f093fb 0%, #f5576c 100%);
+      color: white;
+      padding: 20px;
+      border-radius: 10px;
+      text-align: center;
+    }
+
+    .stat-card:nth-child(2) {
+      background: linear-gradient(135deg, #4facfe 0%, #00f2fe 100%);
+    }
+
+    .stat-card:nth-child(3) {
+      background: linear-gradient(135deg, #43e97b 0%, #38f9d7 100%);
+    }
+
+    .stat-card:nth-child(4) {
+      background: linear-gradient(135deg, #fa709a 0%, #fee140 100%);
+    }
+
+    .stat-value {
+      font-size: 32px;
+      font-weight: bold;
+      margin-bottom: 5px;
+    }
+
+    .stat-label {
+      font-size: 12px;
+      opacity: 0.9;
+    }
+
+    @keyframes fadeIn {
+      from { opacity: 0; transform: translateY(10px); }
+      to { opacity: 1; transform: translateY(0); }
+    }
+
+    .container {
+      animation: fadeIn 0.5s ease;
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <h1>🧪 Dashboard Test Data Loader</h1>
+    <p class="subtitle">Herramienta de carga de datos de prueba para HEYLUZ Dashboard</p>
+
+    <div class="info-box">
+      <p><strong>📝 Instrucciones:</strong></p>
+      <p>1. Haz clic en "Cargar Datos de Prueba" para poblar el dashboard</p>
+      <p>2. Recarga la página <code>/user</code> para ver los cambios</p>
+      <p>3. Usa "Mostrar Estado" para verificar los datos cargados</p>
+      <p>4. Usa "Limpiar Datos" para eliminar todo</p>
+    </div>
+
+    <div class="button-group">
+      <button class="btn-load" onclick="loadData()">
+        <span class="icon">✨</span>
+        Cargar Datos de Prueba
+      </button>
+      <button class="btn-info" onclick="showInfo()">
+        <span class="icon">📊</span>
+        Mostrar Estado
+      </button>
+      <button class="btn-clear" onclick="clearData()">
+        <span class="icon">🗑️</span>
+        Limpiar Datos
+      </button>
+    </div>
+
+    <div class="stats" id="stats"></div>
+
+    <div class="output" id="output">
+      <pre id="outputText"></pre>
+    </div>
+  </div>
+
+  <script src="/utils/dashboardTestData.js"></script>
+  <script>
+    function updateStats() {
+      const wishlist = JSON.parse(localStorage.getItem('heyluz_wishlist') || '[]');
+      const addresses = JSON.parse(localStorage.getItem('heyluz_addresses') || '[]');
+      const orders = JSON.parse(localStorage.getItem('heyluz_orders') || '[]');
+      const settings = JSON.parse(localStorage.getItem('heyluz_settings') || '{}');
+
+      const statsHTML = `
+        <div class="stat-card">
+          <div class="stat-value">${wishlist.length}</div>
+          <div class="stat-label">Productos Favoritos</div>
+        </div>
+        <div class="stat-card">
+          <div class="stat-value">${addresses.length}</div>
+          <div class="stat-label">Direcciones</div>
+        </div>
+        <div class="stat-card">
+          <div class="stat-value">${orders.length}</div>
+          <div class="stat-label">Pedidos</div>
+        </div>
+        <div class="stat-card">
+          <div class="stat-value">${(settings.coupons || []).length}</div>
+          <div class="stat-label">Cupones</div>
+        </div>
+      `;
+
+      document.getElementById('stats').innerHTML = statsHTML;
+    }
+
+    function showOutput(text) {
+      const output = document.getElementById('output');
+      const outputText = document.getElementById('outputText');
+      outputText.textContent = text;
+      output.classList.add('show');
+    }
+
+    function loadData() {
+      if (typeof dashboardTestData === 'undefined') {
+        showOutput('❌ Error: dashboardTestData no está disponible.\nAsegúrate de que el archivo está en /public/utils/');
+        return;
+      }
+
+      const result = dashboardTestData.loadTestData();
+      
+      if (result.success) {
+        showOutput(`✅ ¡Datos cargados exitosamente!\n\n` +
+                   `📦 Productos en wishlist: 5\n` +
+                   `📍 Direcciones guardadas: 3\n` +
+                   `🛒 Pedidos creados: 3\n` +
+                   `🎫 Cupones disponibles: 3\n\n` +
+                   `🔄 Recarga la página /user para ver los cambios`);
+        updateStats();
+      } else {
+        showOutput(`❌ Error al cargar datos:\n${result.error}`);
+      }
+    }
+
+    function clearData() {
+      if (!confirm('¿Estás seguro de eliminar todos los datos de prueba?')) {
+        return;
+      }
+
+      if (typeof dashboardTestData === 'undefined') {
+        showOutput('❌ Error: dashboardTestData no está disponible.');
+        return;
+      }
+
+      const result = dashboardTestData.clearTestData();
+      
+      if (result.success) {
+        showOutput(`✅ Todos los datos eliminados correctamente\n\n🔄 Recarga la página para ver los cambios`);
+        updateStats();
+      } else {
+        showOutput(`❌ Error al eliminar datos:\n${result.error}`);
+      }
+    }
+
+    function showInfo() {
+      if (typeof dashboardTestData === 'undefined') {
+        showOutput('❌ Error: dashboardTestData no está disponible.');
+        return;
+      }
+
+      const info = dashboardTestData.showStorageInfo();
+      
+      const output = `📊 ESTADO ACTUAL DEL STORAGE\n` +
+                     `${'─'.repeat(50)}\n\n` +
+                     `❤️ Wishlist: ${info.wishlist.length} productos\n` +
+                     `📍 Direcciones: ${info.addresses.length} direcciones\n` +
+                     `🛒 Pedidos: ${info.orders.length} pedidos\n` +
+                     `🎫 Cupones: ${(info.settings.coupons || []).length} cupones\n` +
+                     `👤 Perfil: ${info.profile.name || 'No configurado'}\n\n` +
+                     `${'─'.repeat(50)}\n\n` +
+                     `Datos completos disponibles en la consola`;
+      
+      showOutput(output);
+      console.log('📊 Información completa del storage:', info);
+    }
+
+    // Cargar estadísticas al iniciar
+    updateStats();
+  </script>
+</body>
+</html>

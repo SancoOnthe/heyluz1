@@ -1,0 +1,391 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Cargador de Datos Admin | HEYLUZ AROMAS</title>
+  <style>
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    body {
+      font-family: 'Inter', system-ui, -apple-system, sans-serif;
+      background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+      min-height: 100vh;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      padding: 2rem;
+    }
+    .container {
+      background: white;
+      border-radius: 16px;
+      padding: 2rem;
+      max-width: 800px;
+      width: 100%;
+      box-shadow: 0 20px 60px rgba(0,0,0,0.3);
+    }
+    h1 {
+      color: #2c2c2c;
+      margin-bottom: 0.5rem;
+      font-size: 1.8rem;
+    }
+    .subtitle {
+      color: #666;
+      margin-bottom: 2rem;
+      font-size: 0.9rem;
+    }
+    .actions {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+      gap: 1rem;
+      margin-bottom: 2rem;
+    }
+    button {
+      background: linear-gradient(135deg, #d4af37, #b8941f);
+      color: #000;
+      border: none;
+      padding: 1rem 1.5rem;
+      border-radius: 8px;
+      font-weight: 600;
+      cursor: pointer;
+      transition: transform 0.2s, box-shadow 0.2s;
+      font-size: 1rem;
+    }
+    button:hover {
+      transform: translateY(-2px);
+      box-shadow: 0 4px 12px rgba(212, 175, 55, 0.4);
+    }
+    button:active {
+      transform: translateY(0);
+    }
+    .stats {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+      gap: 1rem;
+      margin-bottom: 2rem;
+    }
+    .stat-card {
+      background: #f5f5f5;
+      padding: 1rem;
+      border-radius: 8px;
+      text-align: center;
+    }
+    .stat-value {
+      font-size: 2rem;
+      font-weight: 700;
+      color: #d4af37;
+    }
+    .stat-label {
+      font-size: 0.9rem;
+      color: #666;
+      margin-top: 0.25rem;
+    }
+    .console {
+      background: #1a1a1a;
+      color: #00ff00;
+      padding: 1rem;
+      border-radius: 8px;
+      font-family: 'Courier New', monospace;
+      font-size: 0.9rem;
+      max-height: 300px;
+      overflow-y: auto;
+      white-space: pre-wrap;
+      word-wrap: break-word;
+    }
+    .console-line {
+      margin-bottom: 0.5rem;
+    }
+    .success { color: #00ff00; }
+    .error { color: #ff4444; }
+    .info { color: #00ccff; }
+    .warning { color: #ffaa00; }
+    .link {
+      display: inline-block;
+      margin-top: 1rem;
+      color: #667eea;
+      text-decoration: none;
+      font-weight: 600;
+      transition: color 0.2s;
+    }
+    .link:hover {
+      color: #764ba2;
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <h1>🎨 Cargador de Datos - Admin</h1>
+    <p class="subtitle">Herramienta para cargar datos de prueba en el dashboard de administrador</p>
+    
+    <div class="stats" id="stats">
+      <div class="stat-card">
+        <div class="stat-value" id="productsCount">0</div>
+        <div class="stat-label">Productos</div>
+      </div>
+      <div class="stat-card">
+        <div class="stat-value" id="ordersCount">0</div>
+        <div class="stat-label">Pedidos</div>
+      </div>
+      <div class="stat-card">
+        <div class="stat-value" id="couponsCount">0</div>
+        <div class="stat-label">Cupones</div>
+      </div>
+    </div>
+
+    <div class="actions">
+      <button onclick="loadTestData()">📦 Cargar Datos de Prueba</button>
+      <button onclick="showStorageInfo()">📊 Mostrar Información</button>
+      <button onclick="clearTestData()">🗑️ Limpiar Todo</button>
+    </div>
+
+    <div class="console" id="console">
+      <div class="console-line info">💡 Listo para cargar datos...</div>
+      <div class="console-line">Usa los botones de arriba para gestionar los datos de prueba</div>
+    </div>
+
+    <a href="/admin" class="link">→ Ir al Dashboard de Administrador</a>
+  </div>
+
+  <script>
+    function log(message, type = 'info') {
+      const console = document.getElementById('console');
+      const line = document.createElement('div');
+      line.className = `console-line ${type}`;
+      line.textContent = `[${new Date().toLocaleTimeString()}] ${message}`;
+      console.appendChild(line);
+      console.scrollTop = console.scrollHeight;
+    }
+
+    function updateStats() {
+      try {
+        const products = JSON.parse(localStorage.getItem('heyluz_products') || '[]');
+        const orders = JSON.parse(localStorage.getItem('heyluz_orders') || '[]');
+        const settings = JSON.parse(localStorage.getItem('heyluz_settings') || '{}');
+        const coupons = settings.coupons || [];
+
+        document.getElementById('productsCount').textContent = products.length;
+        document.getElementById('ordersCount').textContent = orders.length;
+        document.getElementById('couponsCount').textContent = coupons.length;
+      } catch (error) {
+        log('Error al actualizar estadísticas: ' + error.message, 'error');
+      }
+    }
+
+    function loadTestData() {
+      log('🚀 Iniciando carga de datos de prueba...', 'info');
+
+      // Productos de ejemplo
+      const products = [
+        {
+          id: 'prod-1',
+          name: 'Elegancia Dorada',
+          image: 'https://images.unsplash.com/photo-1541643600914-78b084683601?w=400',
+          category: 'mujer',
+          price: 89990,
+          originalPrice: 119990,
+          badge: 'Oferta',
+          stock: 25,
+          lowStock: 5,
+          description: 'Fragancia floral con notas de rosa y jazmín',
+          ingredients: 'Rosa, Jazmín, Vainilla',
+          published: true,
+          variants: []
+        },
+        {
+          id: 'prod-2',
+          name: 'Brisa Marina',
+          image: 'https://images.unsplash.com/photo-1592945403244-b3fbafd7f539?w=400',
+          category: 'unisex',
+          price: 69990,
+          badge: 'Nuevo',
+          stock: 40,
+          lowStock: 5,
+          description: 'Aroma fresco con notas cítricas',
+          ingredients: 'Limón, Bergamota, Cedro',
+          published: true,
+          variants: []
+        },
+        {
+          id: 'prod-3',
+          name: 'Noche Oscura',
+          image: 'https://images.unsplash.com/photo-1595425970377-c9703cf48b6f?w=400',
+          category: 'hombre',
+          price: 129990,
+          badge: 'Popular',
+          stock: 15,
+          lowStock: 5,
+          description: 'Fragancia intensa y masculina',
+          ingredients: 'Ámbar, Cuero, Tabaco',
+          published: true,
+          variants: []
+        },
+        {
+          id: 'prod-4',
+          name: 'Flor de Cerezo',
+          image: 'https://images.unsplash.com/photo-1547887537-6158d64c35b3?w=400',
+          category: 'mujer',
+          price: 79990,
+          stock: 30,
+          lowStock: 5,
+          description: 'Aroma delicado y femenino',
+          ingredients: 'Cerezo, Peonía, Almendra',
+          published: true,
+          variants: []
+        },
+        {
+          id: 'prod-5',
+          name: 'Aventura Salvaje',
+          image: 'https://images.unsplash.com/photo-1619994403073-2cec844b8e63?w=400',
+          category: 'hombre',
+          price: 99990,
+          stock: 20,
+          lowStock: 5,
+          description: 'Para el hombre aventurero',
+          ingredients: 'Bergamota, Vetiver, Pachulí',
+          published: true,
+          variants: []
+        }
+      ];
+
+      // Pedidos de ejemplo
+      const orders = [
+        {
+          id: 'ORD-1001',
+          createdAt: new Date().toISOString(),
+          status: 'pagado',
+          items: [
+            { name: 'Elegancia Dorada', quantity: 2, price: 89990 }
+          ],
+          total: 179980,
+          user: { username: 'demo@heyluz.com', email: 'demo@heyluz.com' },
+          invoiceId: 'FAC-1001'
+        },
+        {
+          id: 'ORD-1002',
+          createdAt: new Date(Date.now() - 86400000).toISOString(),
+          status: 'enviado',
+          items: [
+            { name: 'Brisa Marina', quantity: 1, price: 69990 },
+            { name: 'Noche Oscura', quantity: 1, price: 129990 }
+          ],
+          total: 199980,
+          user: { username: 'cliente@example.com', email: 'cliente@example.com' },
+          invoiceId: 'FAC-1002'
+        },
+        {
+          id: 'ORD-1003',
+          createdAt: new Date(Date.now() - 172800000).toISOString(),
+          status: 'pagado',
+          items: [
+            { name: 'Flor de Cerezo', quantity: 3, price: 79990 }
+          ],
+          total: 239970,
+          user: { username: 'maria@example.com', email: 'maria@example.com' },
+          invoiceId: 'FAC-1003'
+        }
+      ];
+
+      // Configuración con cupones
+      const settings = {
+        name: 'HEYLUZ AROMAS',
+        currency: 'COP',
+        tax: 19,
+        shipping: 15000,
+        freeFrom: 200000,
+        taxIncluded: false,
+        orderPrefix: 'ORD-',
+        orderNext: 1004,
+        invoicePrefix: 'FAC-',
+        invoiceNext: 1004,
+        coupons: [
+          {
+            code: 'BIENVENIDO10',
+            type: 'percent',
+            value: 10,
+            scope: 'all',
+            active: true,
+            minSubtotal: 50000,
+            expiresAt: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toISOString()
+          },
+          {
+            code: 'VERANO2025',
+            type: 'amount',
+            value: 20000,
+            scope: 'all',
+            active: true,
+            minSubtotal: 100000,
+            expiresAt: new Date(Date.now() + 60 * 24 * 60 * 60 * 1000).toISOString()
+          }
+        ]
+      };
+
+      try {
+        localStorage.setItem('heyluz_products', JSON.stringify(products));
+        log(`✅ ${products.length} productos cargados`, 'success');
+
+        localStorage.setItem('heyluz_orders', JSON.stringify(orders));
+        log(`✅ ${orders.length} pedidos cargados`, 'success');
+
+        localStorage.setItem('heyluz_settings', JSON.stringify(settings));
+        log(`✅ Configuración y ${settings.coupons.length} cupones cargados`, 'success');
+
+        log('🎉 ¡Datos cargados exitosamente!', 'success');
+        log('📍 Ve al dashboard de administrador para verlos', 'info');
+        
+        updateStats();
+      } catch (error) {
+        log('❌ Error al cargar datos: ' + error.message, 'error');
+      }
+    }
+
+    function showStorageInfo() {
+      log('📊 Mostrando información de almacenamiento...', 'info');
+      
+      try {
+        const products = JSON.parse(localStorage.getItem('heyluz_products') || '[]');
+        const orders = JSON.parse(localStorage.getItem('heyluz_orders') || '[]');
+        const settings = JSON.parse(localStorage.getItem('heyluz_settings') || '{}');
+        const coupons = settings.coupons || [];
+
+        log(`📦 Productos: ${products.length}`, 'info');
+        log(`📋 Pedidos: ${orders.length}`, 'info');
+        log(`🎟️ Cupones: ${coupons.length}`, 'info');
+        log(`💰 Moneda: ${settings.currency || 'No configurada'}`, 'info');
+        
+        if (orders.length > 0) {
+          const total = orders.reduce((sum, o) => sum + (o.total || 0), 0);
+          log(`💵 Total en pedidos: $${total.toLocaleString('es-CO')}`, 'info');
+        }
+
+        const storageSize = new Blob(Object.values(localStorage)).size;
+        log(`💾 Tamaño aprox: ${(storageSize / 1024).toFixed(2)} KB`, 'info');
+      } catch (error) {
+        log('❌ Error al leer información: ' + error.message, 'error');
+      }
+    }
+
+    function clearTestData() {
+      if (!confirm('⚠️ ¿Estás seguro de que quieres eliminar todos los datos?\n\nEsta acción no se puede deshacer.')) {
+        return;
+      }
+
+      log('🗑️ Limpiando datos...', 'warning');
+      
+      try {
+        localStorage.removeItem('heyluz_products');
+        localStorage.removeItem('heyluz_orders');
+        localStorage.removeItem('heyluz_settings');
+        localStorage.removeItem('heyluz_featured_order');
+        
+        log('✅ Todos los datos han sido eliminados', 'success');
+        updateStats();
+      } catch (error) {
+        log('❌ Error al limpiar datos: ' + error.message, 'error');
+      }
+    }
+
+    // Actualizar estadísticas al cargar la página
+    updateStats();
+    log('✨ Página cargada correctamente', 'success');
+  </script>
+</body>
+</html>
